@@ -34,3 +34,4 @@
 # Debug compiled code
 cmake-build-debug
 build
+.idea
