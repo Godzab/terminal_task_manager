@@ -4,10 +4,15 @@
 
 #include "../include/UserInterfaceLayer.h"
 #include "vector"
-#include <map>
 
-#define NUM_COLS 4
-#define PADDING_TOP 3
+#define NUM_COLS sizeof(TaskStatus)
+#define CARD_INNER_HEIGHT 8               // y axis printable portion of card
+#define PADDING_TOP 3                     // padding between top of the screen and first card (includes screen border and lane title text)
+#define CARD_HEIGHT (CARD_INNER_HEIGHT + 2) // Fixed as these cards roll off the bottom of the screen. Width is dynamic based on screen
+#define BORDER_CHAR 1
+#define PADDING_CARD_TEXT_Y (BORDER_CHAR)  
+#define PADDING_CARD_TEXT_X (BORDER_CHAR + 1)
+#define PADDING_CARD_OUTER 1              // vertical spacing between cards
 
 void UserInterfaceLayer::Start() {
     initscr();
@@ -21,28 +26,32 @@ void UserInterfaceLayer::Start() {
     init_pair(4, COLOR_MAGENTA, COLOR_BLACK);
     init_pair(5, COLOR_WHITE, COLOR_BLACK);
 
-    int row, col;
-    getmaxyx(stdscr, row, col);
+    init_pair(6, COLOR_WHITE, COLOR_GREEN);
+    init_pair(7, COLOR_WHITE, COLOR_YELLOW);
+    init_pair(8, COLOR_WHITE, COLOR_CYAN);
+    init_pair(9, COLOR_WHITE, COLOR_MAGENTA);
+
+    int scr_height, scr_width;
+    getmaxyx(stdscr, scr_height, scr_width);
 
     TaskStatus task_statuses[4] = {TaskStatus::TODO, TaskStatus::IN_PROGRESS, TaskStatus::IN_REVIEW, TaskStatus::DONE};
     int color_pairs[4] = {1, 2, 3, 4};
 
-    std::map<TaskStatus, WINDOW *> lanes{{TaskStatus::TODO, nullptr}, {TaskStatus::IN_PROGRESS, nullptr}, {TaskStatus::IN_REVIEW, nullptr}, {TaskStatus::DONE, nullptr}};
-    for (auto &[k, v] : lanes)
+    for (auto &[k, v] : m_lanes)
     {
-        int i = (int)k;
-
-        lanes[k] = newwin(row, col / NUM_COLS, 0, (col / NUM_COLS) * i);
-        wclear(lanes[k]);
-        box(lanes[k], 0, 0);
-        wattron(lanes[k], COLOR_PAIR(color_pairs[i]));
-        mvwprintw(lanes[k], 1, 2, BusinessLogicLayer::TaskStatusPrettyPrint(task_statuses[i]));
+        int i = (int)k; // for mapping x-axis start pos for cols
+        // build lanes
+        m_lanes[k] = newwin(scr_height, scr_width / NUM_COLS, 0, (scr_width / NUM_COLS) * i);
+        wclear(m_lanes[k]);
+        box(m_lanes[k], 0, 0);
+        wattron(m_lanes[k], COLOR_PAIR(color_pairs[i]));
+        mvwprintw(m_lanes[k], PADDING_CARD_TEXT_Y, PADDING_CARD_TEXT_X, BusinessLogicLayer::TaskStatusPrettyPrint(task_statuses[i]));
         // wbkgd(lanes[k], COLOR_PAIR(6+i));
 
         refresh();
-        box(lanes[k], 0, 0);
-        wrefresh(lanes[k]);
-        RefreshTasks(lanes[k], task_statuses[i], i + 1);
+        box(m_lanes[k], 0, 0);
+        wrefresh(m_lanes[k]);
+        RefreshTasks(m_lanes[k], task_statuses[i], i + 1);
     }
 
     int ch = getch();
@@ -71,35 +80,38 @@ void UserInterfaceLayer::Start() {
 
 void UserInterfaceLayer::RefreshTasks(WINDOW *win, TaskStatus status, int column)
 {
+    const char left_arrow[4] = "<<<";
+    const char right_arrow[4] = ">>>";
     std::vector<Task> tasks = business_logic_layer.GetTasks(status);
-    int _, scr_col;
+    int _, scr_width;
     getmaxyx(win, _, _); // TODO why is this here?
-    getmaxyx(stdscr, _, scr_col);
+    getmaxyx(stdscr, _, scr_width);
 
-    int column_width = scr_col / NUM_COLS; // Divide the screen width by number of columns to find the width of each column
+    int column_width = scr_width / NUM_COLS; // Divide the screen width by number of columns to find the width of each column
     int j = PADDING_TOP;
     for (const auto &task : tasks)
     {
-        WINDOW *task_win = subwin(win, 10, column_width - NUM_COLS, j, (column - 1) * column_width + 2);
-        j += 10;
-        wattron(task_win, COLOR_PAIR(5));
-        mvwprintw(task_win, 1, 2, task.name.c_str());
-        mvwprintw(task_win, 3, 2, task.description.c_str());
-        mvwprintw(task_win, 6, 2, task.created_at.c_str());
+        WINDOW *card = subwin(win, CARD_HEIGHT, column_width - (PADDING_CARD_TEXT_X * 2), j, (column - 1) * column_width + 2);
+        wattron(card, COLOR_PAIR(5));
+        mvwprintw(card, PADDING_CARD_TEXT_Y, PADDING_CARD_TEXT_X, task.name.c_str());
+        mvwprintw(card, PADDING_CARD_TEXT_Y + 2, PADDING_CARD_TEXT_X, task.description.c_str());
+        mvwprintw(card, PADDING_CARD_TEXT_Y + 5, PADDING_CARD_TEXT_X, task.created_at.c_str());
         if (column != 1)
         {
-            mvwprintw(task_win, 8, 2, "<<<");
+            mvwprintw(card, CARD_INNER_HEIGHT, 2, left_arrow);
         }
 
         if (column != NUM_COLS)
         {
-            mvwprintw(task_win, 8, column_width - 9, ">>>");
+            mvwprintw(card, CARD_INNER_HEIGHT, column_width - (sizeof(right_arrow) + (PADDING_CARD_TEXT_X * 2) + 1), right_arrow);
         }
-        wattroff(task_win, COLOR_PAIR(5));
+        wattroff(card, COLOR_PAIR(5));
 
         refresh();
-        box(task_win, 0, 0);
-        wrefresh(task_win);
+        box(card, 0, 0);
+        wrefresh(card);
+
+        j += CARD_INNER_HEIGHT + 1 + PADDING_CARD_OUTER; // include line and
     }
 
     refresh();

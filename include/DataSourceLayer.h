@@ -11,7 +11,7 @@
 class DataSourceLayer
 {
 public:
-    DataSourceLayer() : db_(nullptr) { Connect("../db/tasks.db"); }
+    DataSourceLayer() : db_(nullptr) { Connect("db/tasks.db"); }
     // Connects to the database specified by 'db_file'
     bool Connect(const std::string &);
     // Closes the connection to the database
