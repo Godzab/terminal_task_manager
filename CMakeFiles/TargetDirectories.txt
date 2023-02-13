@@ -1,0 +1,3 @@
+/Users/alex/code/terminal_task_manager/CMakeFiles/TaskManagerTerminal.dir
+/Users/alex/code/terminal_task_manager/CMakeFiles/edit_cache.dir
+/Users/alex/code/terminal_task_manager/CMakeFiles/rebuild_cache.dir

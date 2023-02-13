@@ -8,7 +8,8 @@
 #include <ncurses.h>
 #include "BusinessLogicLayer.h"
 
-class UserInterfaceLayer {
+class UserInterfaceLayer
+{
 public:
     UserInterfaceLayer() = default;
     ~UserInterfaceLayer() = default;
@@ -16,8 +17,7 @@ public:
 
 private:
     BusinessLogicLayer business_logic_layer{};
-    void RefreshTasks(WINDOW*, TaskStatus, int);
+    void RefreshTasks(WINDOW *, TaskStatus, int);
 };
 
-
-#endif //TASKMANAGERTERMINAL_USERINTERFACELAYER_H
+#endif // TASKMANAGERTERMINAL_USERINTERFACELAYER_H
