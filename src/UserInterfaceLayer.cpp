@@ -7,10 +7,9 @@
 #include <map>
 
 #define NUM_COLS 4
-#define PADDING_TOP 10
+#define PADDING_TOP 3
 
-void UserInterfaceLayer::Start()
-{
+void UserInterfaceLayer::Start() {
     initscr();
     noecho();
     cbreak();
@@ -21,11 +20,6 @@ void UserInterfaceLayer::Start()
     init_pair(3, COLOR_YELLOW, COLOR_BLACK);
     init_pair(4, COLOR_MAGENTA, COLOR_BLACK);
     init_pair(5, COLOR_WHITE, COLOR_BLACK);
-
-    init_pair(6, COLOR_WHITE, COLOR_GREEN);
-    init_pair(7, COLOR_WHITE, COLOR_YELLOW);
-    init_pair(8, COLOR_WHITE, COLOR_CYAN);
-    init_pair(9, COLOR_WHITE, COLOR_MAGENTA);
 
     int row, col;
     getmaxyx(stdscr, row, col);
