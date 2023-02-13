@@ -1,10 +1,8 @@
 #include "../include/UserInterfaceLayer.h"
 
-int main()
-{
+int main(){
     DataSourceLayer dl{};
-    dl.seedDatabase();
-
+    //dl.seedDatabase();
     UserInterfaceLayer ui{};
     ui.Start();
     return 0;
