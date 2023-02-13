@@ -15,11 +15,14 @@ public:
     UserInterfaceLayer() = default;
     ~UserInterfaceLayer() = default;
     void Start();
+    void RenderTaskManager();
 
 private:
     BusinessLogicLayer business_logic_layer{};
     std::map<TaskStatus, WINDOW *> m_lanes{{TaskStatus::TODO, nullptr}, {TaskStatus::IN_PROGRESS, nullptr}, {TaskStatus::IN_REVIEW, nullptr}, {TaskStatus::DONE, nullptr}};
     void RefreshTasks(WINDOW *, TaskStatus, int);
+
+    static void RenderMenu(WINDOW *menu_win) ;
 };
 
 #endif // TASKMANAGERTERMINAL_USERINTERFACELAYER_H

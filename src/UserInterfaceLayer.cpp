@@ -15,68 +15,78 @@
 #define PADDING_CARD_OUTER 1              // vertical spacing between cards
 
 void UserInterfaceLayer::Start() {
+    // Initialize ncurses
     initscr();
-    noecho();
     cbreak();
-    start_color();
+    noecho();
 
-    init_pair(1, COLOR_CYAN, COLOR_BLACK);
-    init_pair(2, COLOR_GREEN, COLOR_BLACK);
-    init_pair(3, COLOR_YELLOW, COLOR_BLACK);
-    init_pair(4, COLOR_MAGENTA, COLOR_BLACK);
-    init_pair(5, COLOR_WHITE, COLOR_BLACK);
+    // Get the size of the parent screen
+    int parent_height, parent_width;
+    getmaxyx(stdscr, parent_height, parent_width);
 
-    init_pair(6, COLOR_WHITE, COLOR_GREEN);
-    init_pair(7, COLOR_WHITE, COLOR_YELLOW);
-    init_pair(8, COLOR_WHITE, COLOR_CYAN);
-    init_pair(9, COLOR_WHITE, COLOR_MAGENTA);
+    // Create a menu window with minimum size of half the parent screen
+    int menu_height = std::max(parent_height * 3 / 4, 10);
+    int menu_width = std::max(parent_width * 3 / 4, 40);
+    int menu_y = (parent_height - menu_height) / 2;
+    int menu_x = (parent_width - menu_width) / 2;
+    WINDOW *menu_win = newwin(menu_height, menu_width, menu_y, menu_x);
 
-    int scr_height, scr_width;
-    getmaxyx(stdscr, scr_height, scr_width);
+    //Render the menu options.
+    RenderMenu(menu_win);
 
-    TaskStatus task_statuses[4] = {TaskStatus::TODO, TaskStatus::IN_PROGRESS, TaskStatus::IN_REVIEW, TaskStatus::DONE};
-    int color_pairs[4] = {1, 2, 3, 4};
-
-    for (auto &[k, v] : m_lanes)
-    {
-        int i = (int)k; // for mapping x-axis start pos for cols
-        // build lanes
-        m_lanes[k] = newwin(scr_height, scr_width / NUM_COLS, 0, (scr_width / NUM_COLS) * i);
-        wclear(m_lanes[k]);
-        box(m_lanes[k], 0, 0);
-        wattron(m_lanes[k], COLOR_PAIR(color_pairs[i]));
-        mvwprintw(m_lanes[k], PADDING_CARD_TEXT_Y, PADDING_CARD_TEXT_X, BusinessLogicLayer::TaskStatusPrettyPrint(task_statuses[i]));
-        // wbkgd(lanes[k], COLOR_PAIR(6+i));
-
-        refresh();
-        box(m_lanes[k], 0, 0);
-        wrefresh(m_lanes[k]);
-        RefreshTasks(m_lanes[k], task_statuses[i], i + 1);
-    }
-
-    int ch = getch();
-    while (ch != 'q')
-    {
-        switch (ch)
-        {
-        case KEY_LEFT:
-            // Handle navigation to the previous column
-            break;
-        case KEY_RIGHT:
-            // Handle navigation to the next column
-            break;
-        case KEY_UP:
-            // Handle navigation to the previous task
-            break;
-        case KEY_DOWN:
-            // Handle navigation to the next task
-            break;
+    // Wait for user input and handle menu options
+    int choice;
+    while ((choice = wgetch(menu_win)) != '4') {
+        switch (choice) {
+            case '1':
+                // Open the task manager
+                RenderTaskManager();
+                RenderMenu(menu_win);
+                break;
+            case '2':
+                // Handle option 2
+                break;
+            case '3':
+                // Handle option 3
+                break;
+            default:
+                break;
         }
-        ch = getch();
+        wrefresh(menu_win);
     }
 
+    // Clean up
+    delwin(menu_win);
     endwin();
+    refresh();
 }
+
+void UserInterfaceLayer::RenderMenu(WINDOW *menu_win) {
+    refresh();
+    wrefresh(menu_win);
+    init_pair(8, COLOR_CYAN, COLOR_BLACK);
+    int distance_from_center = (getmaxx(menu_win) - 18) / 2;
+    int ascii_title_offset_y = 40;
+    int ascii_title_offset_x = 7;
+
+    // Display the menu options ref: https://patorjk.com/software/taag/#p=display&h=0&f=Graceful&t=Productivity%20App%20
+    wattron(menu_win, COLOR_PAIR(8));
+    mvwprintw(menu_win,++ascii_title_offset_x, distance_from_center - ascii_title_offset_y, " ____  ____   __   ____  _  _   ___  ____   __   _  _   __   ____  _  _         __   ____  ____ \n");
+    mvwprintw(menu_win,++ascii_title_offset_x, distance_from_center - ascii_title_offset_y, "(  _ \\(  _ \\ /  \\ (    \\/ )( \\ / __)(_  _) (  ) / )( \\ (  ) (_  _)( \\/ )       / _\\ (  _ \\(  _ \\ \n");
+    mvwprintw(menu_win,++ascii_title_offset_x, distance_from_center - ascii_title_offset_y, " ) __/ )   /(  O ) ) D () \\/ (( (__   )(    )(  \\ \\/ /  )(    )(   )  /       /    \\ ) __/ ) __/ \n");
+    mvwprintw(menu_win,++ascii_title_offset_x, distance_from_center - ascii_title_offset_y, "(__)  (__\\_) \\__/ (____/\\____/ \\___) (__)  (__)  \\__/  (__)  (__) (__/        \\_/\\_/(__)  (__)\n");
+    wattroff(menu_win, COLOR_PAIR(8));
+    wrefresh(menu_win);
+    refresh();
+
+    mvwprintw(menu_win, getmaxy(menu_win) / 2 - 1, distance_from_center - 5, "1. Open Task Manager ");
+    mvwprintw(menu_win, getmaxy(menu_win) / 2 + 1, distance_from_center - 5, "2. Calendar - (coming soon) ");
+    mvwprintw(menu_win, getmaxy(menu_win) / 2 + 3, distance_from_center - 5, "3. Planner - (Coming soon) ");
+    mvwprintw(menu_win, getmaxy(menu_win) / 2 + 5, distance_from_center - 5, "4. Exit ");
+    box(menu_win, 0, 0);
+    wrefresh(menu_win);
+}
+
 
 void UserInterfaceLayer::RefreshTasks(WINDOW *win, TaskStatus status, int column)
 {
@@ -117,4 +127,59 @@ void UserInterfaceLayer::RefreshTasks(WINDOW *win, TaskStatus status, int column
     refresh();
     box(win, 0, 0);
     wrefresh(win);
+}
+
+void UserInterfaceLayer::RenderTaskManager() {
+    initscr();
+    noecho();
+    cbreak();
+    start_color();
+
+    init_pair(1, COLOR_CYAN, COLOR_BLACK);
+    init_pair(2, COLOR_GREEN, COLOR_BLACK);
+    init_pair(3, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(4, COLOR_MAGENTA, COLOR_BLACK);
+    init_pair(5, COLOR_WHITE, COLOR_BLACK);
+
+    int scr_height, scr_width;
+    getmaxyx(stdscr, scr_height, scr_width);
+
+    TaskStatus task_statuses[4] = {TaskStatus::TODO, TaskStatus::IN_PROGRESS, TaskStatus::IN_REVIEW, TaskStatus::DONE};
+    int color_pairs[4] = {1, 2, 3, 4};
+
+    for (auto &[k, v] : m_lanes)
+    {
+        int i = (int)k; // for mapping x-axis start pos for cols
+        // build lanes
+        m_lanes[k] = newwin(scr_height, scr_width / NUM_COLS, 0, (scr_width / NUM_COLS) * i);
+        wclear(m_lanes[k]);
+        box(m_lanes[k], 0, 0);
+        wattron(m_lanes[k], COLOR_PAIR(color_pairs[i]));
+        mvwprintw(m_lanes[k], PADDING_CARD_TEXT_Y, PADDING_CARD_TEXT_X, BusinessLogicLayer::TaskStatusPrettyPrint(task_statuses[i]));
+        wattroff(m_lanes[k], COLOR_PAIR(color_pairs[i]));
+        RefreshTasks(m_lanes[k], task_statuses[i], i + 1);
+    }
+
+    int ch = getch();
+    while (ch != 'q')
+    {
+        switch (ch)
+        {
+            case KEY_LEFT:
+                // Handle navigation to the previous column
+                break;
+            case KEY_RIGHT:
+                // Handle navigation to the next column
+                break;
+            case KEY_UP:
+                // Handle navigation to the previous task
+                break;
+            case KEY_DOWN:
+                // Handle navigation to the next task
+                break;
+        }
+        ch = getch();
+    }
+    clear();
+    refresh();
 }
