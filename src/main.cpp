@@ -1,6 +1,7 @@
 #include "../include/UserInterfaceLayer.h"
 
-int main() {
+int main()
+{
     DataSourceLayer dl{};
     dl.seedDatabase();
 

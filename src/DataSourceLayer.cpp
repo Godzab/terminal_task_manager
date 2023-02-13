@@ -7,9 +7,11 @@
 using namespace std;
 
 // Connects to the database specified by 'db_file'
-bool DataSourceLayer::Connect(const std::string &db_file) {
+bool DataSourceLayer::Connect(const std::string &db_file)
+{
     int result = sqlite3_open(db_file.c_str(), &db_);
-    if (result != SQLITE_OK) {
+    if (result != SQLITE_OK)
+    {
         std::cerr << "Error opening database: " << sqlite3_errmsg(db_)
                   << std::endl;
         return false;
@@ -18,18 +20,22 @@ bool DataSourceLayer::Connect(const std::string &db_file) {
 }
 
 // Closes the connection to the database
-void DataSourceLayer::Close() {
-    if (db_ != nullptr) {
+void DataSourceLayer::Close()
+{
+    if (db_ != nullptr)
+    {
         sqlite3_close(db_);
         db_ = nullptr;
     }
 }
 
 // Executes the SQL statement 'sql'
-bool DataSourceLayer::ExecuteSQL(const std::string &sql) {
+bool DataSourceLayer::ExecuteSQL(const std::string &sql)
+{
     char *error_message = nullptr;
     int result = sqlite3_exec(db_, sql.c_str(), nullptr, nullptr, &error_message);
-    if (result != SQLITE_OK) {
+    if (result != SQLITE_OK)
+    {
         std::cerr << "Error executing SQL: " << error_message << std::endl;
         sqlite3_free(error_message);
         return false;
@@ -39,11 +45,13 @@ bool DataSourceLayer::ExecuteSQL(const std::string &sql) {
 
 // Executes the SQL query 'sql' and retrieves the results
 bool DataSourceLayer::GetResults(const std::string &sql,
-                int (*callback)(void*, int, char**, char**),
-                void *arg) {
+                                 int (*callback)(void *, int, char **, char **),
+                                 void *arg)
+{
     char *error_message = nullptr;
     int result = sqlite3_exec(db_, sql.c_str(), callback, arg, &error_message);
-    if (result != SQLITE_OK) {
+    if (result != SQLITE_OK)
+    {
         std::cerr << "Error executing SQL: " << error_message << std::endl;
         sqlite3_free(error_message);
         return false;
@@ -51,7 +59,8 @@ bool DataSourceLayer::GetResults(const std::string &sql,
     return true;
 }
 
-void DataSourceLayer::seedDatabase() {
+void DataSourceLayer::seedDatabase()
+{
     // SQL statement to create the tasks table
     const char *createTableSQL = "CREATE TABLE IF NOT EXISTS tasks "
                                  "(name TEXT NOT NULL, "
@@ -64,7 +73,8 @@ void DataSourceLayer::seedDatabase() {
     int createTableResult = sqlite3_exec(db_, createTableSQL, 0, 0, 0);
 
     // Check if the create table SQL statement was executed successfully
-    if (createTableResult != SQLITE_OK) {
+    if (createTableResult != SQLITE_OK)
+    {
         cerr << "Error creating tasks table: " << sqlite3_errmsg(db_) << endl;
         return;
     }
@@ -80,7 +90,8 @@ void DataSourceLayer::seedDatabase() {
     int seedDataResult = sqlite3_exec(db_, seedDataSQL.c_str(), 0, 0, 0);
 
     // Check if the seed data SQL statement was executed successfully
-    if (seedDataResult != SQLITE_OK) {
+    if (seedDataResult != SQLITE_OK)
+    {
         cerr << "Error seeding tasks table: " << sqlite3_errmsg(db_) << endl;
         return;
     }
