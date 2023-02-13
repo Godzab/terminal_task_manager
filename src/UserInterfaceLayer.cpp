@@ -14,8 +14,7 @@
 #define PADDING_CARD_TEXT_X (BORDER_CHAR + 1)
 #define PADDING_CARD_OUTER 1              // vertical spacing between cards
 
-void UserInterfaceLayer::Start()
-{
+void UserInterfaceLayer::Start() {
     initscr();
     noecho();
     cbreak();
