@@ -19,7 +19,16 @@ bool DataSourceLayer::Connect(const std::string &db_file)
                   << std::endl;
         return false;
     }
-    return true;
+    // SQL statement to create the tasks table
+    const char *createTableSQL = "CREATE TABLE IF NOT EXISTS tasks "
+                                 "(name TEXT NOT NULL, "
+                                 "description TEXT NOT NULL, "
+                                 "status INTEGER NOT NULL, "
+                                 "created_at DATETIME NOT NULL, "
+                                 "objective TEXT NOT NULL);";
+
+    // Execute the create table SQL statement
+    return ExecuteSQL(createTableSQL);
 }
 
 // Closes the connection to the database
@@ -47,6 +56,7 @@ bool DataSourceLayer::GetResults(const std::string &sql,
     }
     return true;
 }
+
 
 void DataSourceLayer::seedDatabase() {
     // Define the seed data as a vector of tuples

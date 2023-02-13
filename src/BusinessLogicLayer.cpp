@@ -31,15 +31,29 @@ bool BusinessLogicLayer::CreateTask(const std::string &name, const std::string &
 
 bool BusinessLogicLayer::UpdateTaskStatus(int task_id, TaskStatus status)
 {
-    std::string sql = "UPDATE tasks SET status = '" + std::string(BusinessLogicLayer::TaskStatusToString(status)) +
-                      "' WHERE id = " + std::to_string(task_id) + ";";
+    // Prepare the SQL statement for update
+    sqlite3_stmt *stmt;
 
-    if (!data_layer.ExecuteSQL(sql))
-    {
+    if (!data_layer.PrepareStatement("UPDATE tasks SET status = ? WHERE id = ?", &stmt)) {
+        std::cerr << "Error preparing SQL statement." << std::endl;
+        // Handle the error
         return false;
     }
 
-    data_layer.Close();
+    // Bind the parameter values to the prepared statement
+    sqlite3_bind_int(stmt, 1, static_cast<int>(status));
+    sqlite3_bind_int(stmt, 2, task_id);
+
+    // Execute the prepared statement
+    if (!data_layer.ExecuteSQL(stmt)) {
+        std::cerr << "Error updating task status." << std::endl;
+        // Handle the error
+        return false;
+    }
+
+    // Clean up
+    sqlite3_finalize(stmt);
+
     return true;
 }
 
