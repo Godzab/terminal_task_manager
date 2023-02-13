@@ -2,7 +2,7 @@
 // Created by Godfrey Bafana on 2023/02/09.
 //
 
-#include "UserInterfaceLayer.h"
+#include "../include/UserInterfaceLayer.h"
 #include "vector"
 
 void UserInterfaceLayer::Start() {
@@ -42,14 +42,6 @@ void UserInterfaceLayer::Start() {
         RefreshTasks(status_win, task_statuses[i], i+1);
     }
 
-
-
-
-    /*RefreshTasks(todo_win, TaskStatus::TODO);
-    RefreshTasks(in_progress_win, TaskStatus::IN_PROGRESS);
-    RefreshTasks(blocked_win, TaskStatus::BLOCKED);
-    RefreshTasks(done_win, TaskStatus::DONE);*/
-
     int ch = getch();
     while (ch != 'q') {
         switch (ch) {
@@ -74,15 +66,14 @@ void UserInterfaceLayer::Start() {
 
 void UserInterfaceLayer::RefreshTasks(WINDOW * win, TaskStatus status, int column) {
     std::vector<Task> tasks = business_logic_layer.GetTasks(status);
-    int row, col, scr_col, scr_row;
-    getmaxyx(win, row, col);
-    getmaxyx(stdscr, scr_row, scr_col);
+    int _, scr_col;
+    getmaxyx(win, _, _);
+    getmaxyx(stdscr, _, scr_col);
 
     int column_width = scr_col / 4; // Divide the screen width by 4 to find the width of each column
     int j = 3;
-    for (unsigned i = 0; i < tasks.size(); i++) {
+    for (const auto& task : tasks) {
         WINDOW* task_win = subwin(win, 10, column_width-4, j, (column-1) * column_width + 2);
-        Task task = tasks[i];
         j+=10;
         wattron(task_win, COLOR_PAIR(5));
         mvwprintw(task_win, 1, 2, task.name.c_str());
