@@ -5,6 +5,7 @@
 #ifndef TASKMANAGERTERMINAL_BUSINESSLOGICLAYER_H
 #define TASKMANAGERTERMINAL_BUSINESSLOGICLAYER_H
 #include "DataSourceLayer.h"
+#include "vector"
 
 enum class TaskStatus
 {

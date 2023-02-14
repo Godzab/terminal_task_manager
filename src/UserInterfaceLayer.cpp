@@ -36,9 +36,8 @@ void UserInterfaceLayer::Start()
     RenderMenu(menu_win);
 
     // Wait for user input and handle menu options
-    // int choice;
-    // while ((choice = wgetch(menu_win)) != '4')
-    int choice = '1';
+    int choice;
+    while ((choice = wgetch(menu_win)) != '4')
     {
         switch (choice)
         {
@@ -99,7 +98,6 @@ void UserInterfaceLayer::ReloadTasks(WINDOW *win, TaskStatus status, int column)
     std::cerr << "length of right arrow" << right_arrow.length() << std::endl;
     std::vector<Task> tasks = business_logic_layer.GetTasks(status);
     int _, scr_width;
-//    getmaxyx(win, _, _); // TODO why is this here?
     getmaxyx(stdscr, _, scr_width);
 
     const int column_width = (int)(scr_width / NUM_COLS); // Divide the screen width by number of columns to find the width of each column
@@ -122,9 +120,7 @@ void UserInterfaceLayer::ReloadTasks(WINDOW *win, TaskStatus status, int column)
         }
         wattroff(card, COLOR_PAIR(5));
 
-//        refresh();
         box(card, 0, 0); // Card borders
-//        wrefresh(card); // refresh card
 
         j += CARD_INNER_HEIGHT + 1 + PADDING_CARD_OUTER;
     }
