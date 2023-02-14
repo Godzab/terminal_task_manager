@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread")
 
 file(GLOB project_SRCS src/*.cpp) #src/*.h
 
-add_executable(TaskManagerTerminal ${project_SRCS})
+add_executable(TaskManagerTerminal ${project_SRCS} include/BusinessLogicLayer.h include/DataSourceLayer.h include/UserInterfaceLayer.h)
 
 target_link_libraries(TaskManagerTerminal ${CURSES_LIBRARIES} ${SQLite3_LIBRARIES})
 

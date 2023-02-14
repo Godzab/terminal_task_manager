@@ -48,7 +48,7 @@ bool DataSourceLayer::GetResults(const std::string &sql,
 {
     char *error_message = nullptr;
     int result = sqlite3_exec(db_, sql.c_str(), callback, arg, &error_message);
-    if (result != SQLITE_OK)
+    if (result != SQLITE_OK) // TODO Check that this isn't returning SQLITE_MISUSE
     {
         std::cerr << "Error executing SQL: " << error_message << std::endl;
         sqlite3_free(error_message);

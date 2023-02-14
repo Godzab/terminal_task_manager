@@ -20,7 +20,7 @@ public:
 private:
     BusinessLogicLayer business_logic_layer{};
     std::map<TaskStatus, WINDOW *> m_lanes{{TaskStatus::TODO, nullptr}, {TaskStatus::IN_PROGRESS, nullptr}, {TaskStatus::IN_REVIEW, nullptr}, {TaskStatus::DONE, nullptr}};
-    void RefreshTasks(WINDOW *, TaskStatus, int);
+    void ReloadTasks(WINDOW *win, TaskStatus status, int column);
 
     static void RenderMenu(WINDOW *menu_win) ;
 };
