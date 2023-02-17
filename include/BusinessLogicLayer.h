@@ -8,7 +8,7 @@
 
 enum class TaskStatus
 {
-    TODO,
+    TODO = 0,
     IN_PROGRESS,
     IN_REVIEW,
     DONE
@@ -28,7 +28,7 @@ class BusinessLogicLayer
 public:
     BusinessLogicLayer() = default;
     ~BusinessLogicLayer() = default;
-    bool CreateTask(const std::string &, const std::string &, TaskStatus, const std::string &);
+    bool CreateTask(const std::string &, const std::string &, TaskStatus, const std::string &, const std::string &);
     bool UpdateTaskStatus(int, TaskStatus);
     std::vector<Task> GetTasks(TaskStatus);
     static char *TaskStatusToString(TaskStatus);

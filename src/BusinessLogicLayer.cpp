@@ -7,18 +7,19 @@
 #include "sqlite3.h"
 
 bool BusinessLogicLayer::CreateTask(const std::string &name, const std::string &description,
-                                    TaskStatus status, const std::string &objective)
+                                    TaskStatus status, const std::string &objective, const std::string &created_at)
 {
 
     sqlite3_stmt *sql;
-    if (!data_layer.PrepareStatement("INSERT INTO tasks (name, description, status, objective) VALUES (?, ?, ?, ?)", &sql)) {
+    if (!data_layer.PrepareStatement("INSERT INTO tasks (name, description, status, objective, created_at) VALUES (?, ?, ?, ?, ?)", &sql)) {
         std::cerr << "Error preparing SQL statement." << std::endl;
     }
 
     sqlite3_bind_text(sql, 1, name.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_text(sql, 2, description.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(sql, 3, TaskStatusToString(status), -1, SQLITE_STATIC);
+    sqlite3_bind_int(sql, 3, static_cast<int>(status));
     sqlite3_bind_text(sql, 4, objective.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(sql, 5, created_at.c_str(), -1, SQLITE_STATIC);
 
     if (!data_layer.ExecuteSQL(sql))
     {
