@@ -15,7 +15,6 @@
 #define BORDER_CHAR 1
 #define PADDING_CARD_TEXT_Y (BORDER_CHAR)
 #define PADDING_CARD_TEXT_X (BORDER_CHAR + 1)
-#define PADDING_CARD_OUTER 1              // vertical spacing between cards
 
 enum MenuOption {
     TASK_MANAGER = '1',
@@ -35,6 +34,7 @@ UserInterfaceLayer::UserInterfaceLayer() {
     init_pair(3, COLOR_YELLOW, COLOR_BLACK);
     init_pair(4, COLOR_MAGENTA, COLOR_BLACK);
     init_pair(5, COLOR_WHITE, COLOR_BLACK);
+    init_pair(6, COLOR_BLUE, COLOR_BLACK);
 }
 
 void UserInterfaceLayer::Start() {
@@ -46,7 +46,7 @@ void UserInterfaceLayer::Start() {
     noecho();
 
     // Get the size of the parent screen
-    const std::unique_ptr<WINDOW, decltype(&delwin)> menu_win(createSubWindow(), &delwin);
+    const std::unique_ptr<WINDOW, decltype(&delwin)> menu_win(createSubWindow(stdscr), &delwin);
 
     // Render the menu options.
     RenderMenu(menu_win.get());
@@ -75,9 +75,9 @@ void UserInterfaceLayer::Start() {
     refresh();
 }
 
-WINDOW *UserInterfaceLayer::createSubWindow() {
+WINDOW *UserInterfaceLayer::createSubWindow(WINDOW *parent) {
     int parent_height, parent_width;
-    getmaxyx(stdscr, parent_height, parent_width);
+    getmaxyx(parent, parent_height, parent_width);
 
     // Create a menu window with minimum size of half the parent screen
     int menu_height = std::max(parent_height * 3 / 4, 10);
@@ -92,8 +92,8 @@ void UserInterfaceLayer::RenderMenu(WINDOW *menu_win) {
     int distance_from_center = (getmaxx(menu_win) - 18) / 2;
     int ascii_title_offset_y = 40;
     int ascii_title_offset_x = 7;
-
-    printAsciiArt(menu_win, distance_from_center, ascii_title_offset_y, ascii_title_offset_x);
+    MAIN_TITLE;
+    printAsciiArt(menu_win, distance_from_center, ascii_title_offset_y, ascii_title_offset_x, ascii_art);
 
     std::vector<std::string> options = {
             "1. Open Task Manager",
@@ -113,15 +113,8 @@ void UserInterfaceLayer::RenderMenu(WINDOW *menu_win) {
     refresh();
 }
 
-void UserInterfaceLayer::printAsciiArt(WINDOW *win, int distance_from_center, int ascii_title_offset_y,
-                                       int ascii_title_offset_x) {
+void UserInterfaceLayer::printAsciiArt(WINDOW *win, int distance_from_center, int ascii_title_offset_y, int ascii_title_offset_x, std::string ascii_art) {
     wattron(win, COLOR_PAIR(1));
-    std::string ascii_art = R"(
- ____  ____   __   ____  _  _   ___  ____   __   _  _   __   ____  _  _         __   ____  ____
-(  _ \(  _ \ /  \ (    \/ )( \ / __)(_  _) (  ) / )( \ (  ) (_  _)( \/ )       / _\ (  _ \(  _ \
- ) __/ )   /(  O ) ) D () \/ (( (__   )(    )(  \ \/ /  )(    )(   )  /       /    \ ) __/ ) __/
-(__)  (__\_) \__/ (____/\____/ \___) (__)  (__)  \__/  (__)  (__) (__/        \_/\_/(__)  (__)
-)";
     std::istringstream iss(ascii_art);
     std::string line;
     while (std::getline(iss, line)) {
@@ -174,8 +167,23 @@ void UserInterfaceLayer::printTaskCard(int column, int column_width, int j, cons
 }
 
 void UserInterfaceLayer::RenderTaskManager() {
+    int scr_height, scr_width;
+    getmaxyx(stdscr, scr_height, scr_width);
+    WINDOW *header_win = subwin(stdscr,6, scr_width - 10, 1,5);
+    wattron(header_win, COLOR_PAIR(2));
+    wattron(header_win, A_BOLD);
+    mvwprintw(header_win, 2, 2, "TERMINAL KANBAN");
+    wattroff(header_win, A_BOLD);
+    wattron(header_win, COLOR_PAIR(6));
+    mvwprintw(header_win, 4, 2, "Q - Back to menu  |   A - Add Task");
+    wattroff(header_win, COLOR_PAIR(6));
+    wattroff(header_win, COLOR_PAIR(2));
+    box(header_win, 0,0);
+    wrefresh(header_win);
+    refresh();
+
     RenderTaskCards();
-    auto form_win = createSubWindow();
+    auto form_win = createSubWindow(stdscr);
     int ch = getch();
     while (ch != 'q') {
         switch (ch) {
@@ -198,7 +206,7 @@ void UserInterfaceLayer::RenderTaskManager() {
                 break;
         }
         RenderTaskCards();
-        form_win = createSubWindow();
+        form_win = createSubWindow(stdscr);
         ch = getch();
     }
     clear();
@@ -242,11 +250,11 @@ void UserInterfaceLayer::RenderNewTaskForm(WINDOW *form_win) {
     clear();
     // Define form fields
     std::vector<std::tuple<std::string, std::string, int>> fields = {
-            {"Name: ", "", 0},
+            {"Name: ",        "", 0},
             {"Description: ", "", 0},
-            {"Status: ", "", 16},
-            {"Objective: ", "", 0},
-            {"Created At: ", "", 0}
+            {"Status: ",      "", 16},
+            {"Objective: ",   "", 0},
+            {"Created At: ",  "", 0}
     };
 
     // Calculate field positions
@@ -255,19 +263,26 @@ void UserInterfaceLayer::RenderNewTaskForm(WINDOW *form_win) {
     int max_x = getmaxx(form_win) - 2;
     int x = max_x / 2 - 8;
 
-    // Render form fields
-    for (auto& field : fields) {
-        std::string prompt = std::get<0>(field);
-        std::string& input = std::get<1>(field);
-        int input_size = std::get<2>(field);
+    wattron(form_win, COLOR_PAIR(2));
+    wattron(form_win, A_BOLD);
+    mvwprintw(form_win, 7, x - 5, "ENTER TASK DETAILS");
+    mvwprintw(form_win, 8, x - 5, "===================");
+    wattroff(form_win, COLOR_PAIR(2));
+    wattroff(form_win, A_BOLD);
 
+    // Render form fields
+    for (auto &field: fields) {
+        std::string prompt = std::get<0>(field);
+        std::string &input = std::get<1>(field);
+        int input_size = std::get<2>(field);
+        wattron(form_win, A_BOLD);
         mvwprintw(form_win, y, x - prompt.length(), prompt.c_str());
+        wattroff(form_win, A_BOLD);
 
         if (input_size == 0) {
             if (prompt == "Created At: ") {
                 input = UserInterfaceLayer::GetCurrentTimestamp();
-            }
-            else {
+            } else {
                 input_size = max_x - prompt.length() - 1;
             }
         }
@@ -300,12 +315,13 @@ void UserInterfaceLayer::RenderNewTaskForm(WINDOW *form_win) {
     wclear(form_win);
 }
 
-void UserInterfaceLayer::collectUserInput(WINDOW *form_win, std::vector<std::tuple<std::string, std::string, int>> &fields,
+void
+UserInterfaceLayer::collectUserInput(WINDOW *form_win, std::vector<std::tuple<std::string, std::string, int>> &fields,
                                      int form_height, int y, int max_x, int x) {// Get user input
     y = form_height / 2 - fields.size();
-    for (auto& field : fields) {
+    for (auto &field: fields) {
         std::string prompt = std::get<0>(field);
-        std::string& input = std::get<1>(field);
+        std::string &input = std::get<1>(field);
         int input_size = std::get<2>(field);
 
         if (input_size == 0) {
@@ -313,7 +329,7 @@ void UserInterfaceLayer::collectUserInput(WINDOW *form_win, std::vector<std::tup
         }
 
         if (prompt != "Created At: ") {
-            char* input_buffer = new char[input_size + 1]();
+            char *input_buffer = new char[input_size + 1]();
             wmove(form_win, y, x + 2);
             echo();
             wgetnstr(form_win, input_buffer, input_size);
