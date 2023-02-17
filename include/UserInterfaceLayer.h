@@ -12,7 +12,7 @@
 class UserInterfaceLayer
 {
 public:
-    UserInterfaceLayer() = default;
+    UserInterfaceLayer();
     ~UserInterfaceLayer() = default;
     void Start();
     void RenderTaskManager();
@@ -25,12 +25,12 @@ private:
     static void RenderNewTaskForm(WINDOW *form_win);
     static std::string GetCurrentTimestamp();
     static WINDOW *createSubWindow() ;
-
-    void RendertaskCards();
-
-    void RenderNewTaskForm();
-
+    void RenderTaskCards();
     static void printAsciiArt(WINDOW *win, int distance_from_center, int ascii_title_offset_y, int ascii_title_offset_x);
+    static void
+    collectUserInput(WINDOW *form_win, std::vector<std::tuple<std::string, std::string, int>> &fields, int form_height,
+                     int y, int max_x, int x);
+    static void printTaskCard(int column, int column_width, int j, const Task &task) ;
 };
 
 #endif // TASKMANAGERTERMINAL_USERINTERFACELAYER_H

@@ -3,6 +3,7 @@
 //
 
 #include <sstream>
+#include <array>
 #include "../include/UserInterfaceLayer.h"
 #include "vector"
 #include "thread"
@@ -12,7 +13,7 @@
 #define PADDING_TOP 3                     // padding between top of the screen and first card (includes screen border and lane title text)
 #define CARD_HEIGHT (CARD_INNER_HEIGHT + 2) // Fixed as these cards roll off the bottom of the screen. Width is dynamic based on screen
 #define BORDER_CHAR 1
-#define PADDING_CARD_TEXT_Y (BORDER_CHAR)  
+#define PADDING_CARD_TEXT_Y (BORDER_CHAR)
 #define PADDING_CARD_TEXT_X (BORDER_CHAR + 1)
 #define PADDING_CARD_OUTER 1              // vertical spacing between cards
 
@@ -22,6 +23,19 @@ enum MenuOption {
     PLANNER = '3',
     EXIT = '4'
 };
+
+UserInterfaceLayer::UserInterfaceLayer() {
+    initscr();
+    noecho();
+    cbreak();
+    start_color();
+
+    init_pair(1, COLOR_CYAN, COLOR_BLACK);
+    init_pair(2, COLOR_GREEN, COLOR_BLACK);
+    init_pair(3, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(4, COLOR_MAGENTA, COLOR_BLACK);
+    init_pair(5, COLOR_WHITE, COLOR_BLACK);
+}
 
 void UserInterfaceLayer::Start() {
     // Initialize ncurses
@@ -43,6 +57,7 @@ void UserInterfaceLayer::Start() {
         switch (choice) {
             case MenuOption::TASK_MANAGER:
                 // Open the task manager
+                clear();
                 RenderTaskManager();
                 RenderMenu(menu_win.get());
                 break;
@@ -60,7 +75,7 @@ void UserInterfaceLayer::Start() {
     refresh();
 }
 
-WINDOW * UserInterfaceLayer::createSubWindow() {
+WINDOW *UserInterfaceLayer::createSubWindow() {
     int parent_height, parent_width;
     getmaxyx(stdscr, parent_height, parent_width);
 
@@ -73,8 +88,7 @@ WINDOW * UserInterfaceLayer::createSubWindow() {
     return newwin(menu_height, menu_width, menu_y, menu_x);
 }
 
-void UserInterfaceLayer::RenderMenu(WINDOW* menu_win) {
-    init_pair(8, COLOR_CYAN, COLOR_BLACK);
+void UserInterfaceLayer::RenderMenu(WINDOW *menu_win) {
     int distance_from_center = (getmaxx(menu_win) - 18) / 2;
     int ascii_title_offset_y = 40;
     int ascii_title_offset_x = 7;
@@ -99,8 +113,9 @@ void UserInterfaceLayer::RenderMenu(WINDOW* menu_win) {
     refresh();
 }
 
-void UserInterfaceLayer::printAsciiArt(WINDOW* win, int distance_from_center, int ascii_title_offset_y, int ascii_title_offset_x) {
-    wattron(win, COLOR_PAIR(8));
+void UserInterfaceLayer::printAsciiArt(WINDOW *win, int distance_from_center, int ascii_title_offset_y,
+                                       int ascii_title_offset_x) {
+    wattron(win, COLOR_PAIR(1));
     std::string ascii_art = R"(
  ____  ____   __   ____  _  _   ___  ____   __   _  _   __   ____  _  _         __   ____  ____
 (  _ \(  _ \ /  \ (    \/ )( \ / __)(_  _) (  ) / )( \ (  ) (_  _)( \/ )       / _\ (  _ \(  _ \
@@ -113,46 +128,21 @@ void UserInterfaceLayer::printAsciiArt(WINDOW* win, int distance_from_center, in
         mvwprintw(win, ascii_title_offset_x, distance_from_center - ascii_title_offset_y, "%s", line.c_str());
         ascii_title_offset_x++;
     }
-    wattroff(win, COLOR_PAIR(8));
+    wattroff(win, COLOR_PAIR(1));
     wrefresh(win);
     refresh();
 }
 
 
-void UserInterfaceLayer::RefreshTasks(WINDOW *win, TaskStatus status, int column)
-{
-    const char left_arrow[4] = "<<<";
-    const char right_arrow[4] = ">>>";
+void UserInterfaceLayer::RefreshTasks(WINDOW *win, TaskStatus status, int column) {
     std::vector<Task> tasks = business_logic_layer.GetTasks(status);
-    int _, scr_width;
-    getmaxyx(win, _, _); // TODO why is this here?
-    getmaxyx(stdscr, _, scr_width);
+    [[maybe_unused]] int column_height, column_width;
+    getmaxyx(win, column_height, column_width);
 
-    int column_width = scr_width / NUM_COLS; // Divide the screen width by number of columns to find the width of each column
-    int j = PADDING_TOP;
-    for (const auto &task : tasks)
-    {
-        WINDOW *card = subwin(win, CARD_HEIGHT, column_width - (PADDING_CARD_TEXT_X * 2), j, (column - 1) * column_width + 2);
-        wattron(card, COLOR_PAIR(5));
-        mvwprintw(card, PADDING_CARD_TEXT_Y, PADDING_CARD_TEXT_X, task.name.c_str());
-        mvwprintw(card, PADDING_CARD_TEXT_Y + 2, PADDING_CARD_TEXT_X, task.description.c_str());
-        mvwprintw(card, PADDING_CARD_TEXT_Y + 5, PADDING_CARD_TEXT_X, task.created_at.c_str());
-        if (column != 1)
-        {
-            mvwprintw(card, CARD_INNER_HEIGHT, 2, left_arrow);
-        }
-
-        if (column != NUM_COLS)
-        {
-            mvwprintw(card, CARD_INNER_HEIGHT, column_width - (sizeof(right_arrow) + (PADDING_CARD_TEXT_X * 2) + 1), right_arrow);
-        }
-        wattroff(card, COLOR_PAIR(5));
-
-        refresh();
-        box(card, 0, 0);
-        wrefresh(card);
-
-        j += CARD_INNER_HEIGHT + 1 + PADDING_CARD_OUTER; // include line and
+    int j = PADDING_TOP + 7;
+    for (const auto &task: tasks) {
+        printTaskCard(column, column_width, j, task);
+        j += CARD_HEIGHT; // include line and
     }
 
     refresh();
@@ -160,26 +150,35 @@ void UserInterfaceLayer::RefreshTasks(WINDOW *win, TaskStatus status, int column
     wrefresh(win);
 }
 
+void UserInterfaceLayer::printTaskCard(int column, int column_width, int j, const Task &task) {
+    const char left_arrow[4] = "<<<";
+    const char right_arrow[4] = ">>>";
+
+    WINDOW *card = subwin(stdscr, CARD_HEIGHT, column_width - 2, j, column * column_width + 6);
+    wattron(card, COLOR_PAIR(5));
+    mvwprintw(card, PADDING_CARD_TEXT_Y, PADDING_CARD_TEXT_X, task.name.c_str());
+    mvwprintw(card, PADDING_CARD_TEXT_Y + 2, PADDING_CARD_TEXT_X, task.description.c_str());
+    mvwprintw(card, PADDING_CARD_TEXT_Y + 5, PADDING_CARD_TEXT_X, task.created_at.c_str());
+    if (column != 1) {
+        mvwprintw(card, CARD_INNER_HEIGHT, 2, left_arrow);
+    }
+
+    if (column != NUM_COLS) {
+        mvwprintw(card, CARD_INNER_HEIGHT, column_width - (sizeof(right_arrow) + (PADDING_CARD_TEXT_X * 2) + 1),
+                  right_arrow);
+    }
+    wattroff(card, COLOR_PAIR(5));
+
+    box(card, 0, 0);
+    wrefresh(card);
+}
+
 void UserInterfaceLayer::RenderTaskManager() {
-    initscr();
-    noecho();
-    cbreak();
-    start_color();
-
-    init_pair(1, COLOR_CYAN, COLOR_BLACK);
-    init_pair(2, COLOR_GREEN, COLOR_BLACK);
-    init_pair(3, COLOR_YELLOW, COLOR_BLACK);
-    init_pair(4, COLOR_MAGENTA, COLOR_BLACK);
-    init_pair(5, COLOR_WHITE, COLOR_BLACK);
-
-    RendertaskCards();
-
+    RenderTaskCards();
     auto form_win = createSubWindow();
     int ch = getch();
-    while (ch != 'q')
-    {
-        switch (ch)
-        {
+    while (ch != 'q') {
+        switch (ch) {
             case KEY_LEFT:
                 // Handle navigation to the previous column
                 break;
@@ -198,7 +197,7 @@ void UserInterfaceLayer::RenderTaskManager() {
             default:
                 break;
         }
-        RendertaskCards();
+        RenderTaskCards();
         form_win = createSubWindow();
         ch = getch();
     }
@@ -206,24 +205,28 @@ void UserInterfaceLayer::RenderTaskManager() {
     refresh();
 }
 
-void UserInterfaceLayer::RendertaskCards() {
+void UserInterfaceLayer::RenderTaskCards() {
     int scr_height, scr_width;
     getmaxyx(stdscr, scr_height, scr_width);
+    int parent_height = std::max(scr_height - 8, 10);
+    int parent_width = std::max(scr_width - 10, 10);
 
-    TaskStatus task_statuses[4] = {TaskStatus::TODO, TaskStatus::IN_PROGRESS, TaskStatus::IN_REVIEW, TaskStatus::DONE};
-    int color_pairs[4] = {1, 2, 3, 4};
+    std::array<TaskStatus, 4> task_statuses = {TaskStatus::TODO, TaskStatus::IN_PROGRESS, TaskStatus::IN_REVIEW,
+                                               TaskStatus::DONE};
+    std::array<int, 4> color_pairs = {1, 2, 3, 4};
 
-    for (auto &[k, v] : m_lanes)
-    {
-        int i = (int)k; // for mapping x-axis start pos for cols
+    for (auto &[k, v]: m_lanes) {
+        int i = (int) k; // for mapping x-axis start pos for cols
         // build lanes
-        m_lanes[k] = newwin(scr_height, scr_width / NUM_COLS, 0, (scr_width / NUM_COLS) * i);
+
+        m_lanes[k] = subwin(stdscr, parent_height, parent_width / NUM_COLS, 7, (parent_width / NUM_COLS) * i + 5);
         wclear(m_lanes[k]);
         box(m_lanes[k], 0, 0);
         wattron(m_lanes[k], COLOR_PAIR(color_pairs[i]));
-        mvwprintw(m_lanes[k], PADDING_CARD_TEXT_Y, PADDING_CARD_TEXT_X, BusinessLogicLayer::TaskStatusPrettyPrint(task_statuses[i]));
+        mvwprintw(m_lanes[k], PADDING_CARD_TEXT_Y, PADDING_CARD_TEXT_X,
+                  BusinessLogicLayer::TaskStatusPrettyPrint(task_statuses[i]));
         wattroff(m_lanes[k], COLOR_PAIR(color_pairs[i]));
-        RefreshTasks(m_lanes[k], task_statuses[i], i + 1);
+        RefreshTasks(m_lanes[k], task_statuses[i], i);
     }
 }
 
@@ -234,7 +237,6 @@ std::string UserInterfaceLayer::GetCurrentTimestamp() {
     std::strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", &local_time);
     return {buffer};
 }
-
 
 void UserInterfaceLayer::RenderNewTaskForm(WINDOW *form_win) {
     clear();
@@ -283,7 +285,23 @@ void UserInterfaceLayer::RenderNewTaskForm(WINDOW *form_win) {
     refresh();
     wrefresh(form_win);
 
-    // Get user input
+    collectUserInput(form_win, fields, form_height, y, max_x, x);
+
+    // Save new task to database
+    BusinessLogicLayer bll;
+    std::string name = std::get<1>(fields[0]);
+    std::string description = std::get<1>(fields[1]);
+    TaskStatus status = TaskStatus::TODO;
+    std::string objective = std::get<1>(fields[3]);
+    std::string created_at = std::get<1>(fields[4]);
+    bll.CreateTask(name, description, status, objective, created_at);
+
+    // Clean up
+    wclear(form_win);
+}
+
+void UserInterfaceLayer::collectUserInput(WINDOW *form_win, std::vector<std::tuple<std::string, std::string, int>> &fields,
+                                     int form_height, int y, int max_x, int x) {// Get user input
     y = form_height / 2 - fields.size();
     for (auto& field : fields) {
         std::string prompt = std::get<0>(field);
@@ -307,16 +325,5 @@ void UserInterfaceLayer::RenderNewTaskForm(WINDOW *form_win) {
 
         y += 2;
     }
-
-    // Save new task to database
-    BusinessLogicLayer bll;
-    std::string name = std::get<1>(fields[0]);
-    std::string description = std::get<1>(fields[1]);
-    TaskStatus status = TaskStatus::TODO;
-    std::string objective = std::get<1>(fields[3]);
-    std::string created_at = std::get<1>(fields[4]);
-    bll.CreateTask(name, description, status, objective, created_at);
-
-    // Clean up
-    wclear(form_win);
 }
+
